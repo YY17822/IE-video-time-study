@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IE 工時影片分析</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="brand">IE 工時影片分析</h1>
+    <button id="btnOpen" class="btn primary">開啟影片</button>
+    <input type="file" id="fileInput" accept="video/*,.mov,.mp4,.m4v" hidden>
+    <span id="fileName" class="file-name">尚未開啟影片</span>
+    <span id="frameInfo" class="frame-info"></span>
+  </header>
+
+  <main class="layout">
+    <section class="stage">
+      <div id="videoWrap" class="video-wrap">
+        <video id="video" playsinline preload="auto"></video>
+        <div id="dropHint" class="drop-hint">
+          <p>把影片拖曳到這裡，或按「開啟影片」</p>
+          <p class="sub">影片只在這台電腦上處理，不會上傳到任何地方</p>
+        </div>
+        <div id="alertBox" class="alert" hidden>
+          <p id="alertText"></p>
+          <button id="alertClose" class="btn">知道了</button>
+        </div>
+        <div id="toast" class="toast" hidden></div>
+      </div>
+
+      <div id="timeline" class="timeline" title="點擊或拖曳以跳到該時間">
+        <div id="tlSegments" class="tl-segments"></div>
+        <div id="tlPlayhead" class="tl-playhead"></div>
+      </div>
+
+      <div class="controls">
+        <button id="btnPrev" class="btn icon" title="後退 1 幀（←）" disabled>◀︎|</button>
+        <button id="btnPlay" class="btn icon play" title="播放 / 暫停（Space）" disabled>▶︎</button>
+        <button id="btnNext" class="btn icon" title="前進 1 幀（→）" disabled>|▶︎</button>
+        <span class="time"><span id="timeNow">00:00.00</span> / <span id="timeTotal">00:00.00</span></span>
+        <span id="frameNow" class="frame-now"></span>
+        <span class="spacer"></span>
+        <button id="btnUndo" class="btn" title="復原（⌘Z）" disabled>復原</button>
+        <button id="btnRedo" class="btn" title="重做（⇧⌘Z）" disabled>重做</button>
+        <button id="btnSplit" class="btn accent" title="在目前這一幀分割（S）" disabled>分割</button>
+        <label class="speed">倍速
+          <select id="speedSel" disabled>
+            <option value="0.25">0.25x</option>
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1.0x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2.0x</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="panel-head">
+        <h2>分割片段</h2>
+        <span id="segSummary" class="summary"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="seg-table">
+          <thead>
+            <tr>
+              <th class="c-no">#</th>
+              <th class="c-time">開始</th>
+              <th class="c-time">結束</th>
+              <th class="c-num">時長(秒)</th>
+              <th class="c-num">幀數</th>
+              <th>動作備註</th>
+            </tr>
+          </thead>
+          <tbody id="segBody"></tbody>
+        </table>
+        <p id="emptyHint" class="empty-hint">開啟影片後，播放到動作切換處按 <kbd>S</kbd> 分割。</p>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="keys">
+    <span class="key" data-key="play"><kbd>Space</kbd>播放／暫停</span>
+    <span class="key" data-key="split"><kbd>S</kbd>分割</span>
+    <span class="key" data-key="prev"><kbd>←</kbd>後退 1 幀</span>
+    <span class="key" data-key="next"><kbd>→</kbd>前進 1 幀</span>
+    <span class="key" data-key="jump"><kbd>⇧</kbd>+<kbd>←→</kbd>10 幀</span>
+    <span class="key" data-key="speed"><kbd>↑</kbd><kbd>↓</kbd>倍速</span>
+    <span class="key" data-key="undo"><kbd>⌘Z</kbd>復原</span>
+    <span class="key" data-key="redo"><kbd>⇧⌘Z</kbd>重做</span>
+    <span class="key" data-key="delete"><kbd>Delete</kbd>刪除目前片段</span>
+    <span class="key" data-key="note"><kbd>Enter</kbd>寫備註</span>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
