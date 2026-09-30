@@ -68,14 +68,27 @@ async function canWrite(handle) {
   return (await handle.requestPermission(opts)) === 'granted';
 }
 
+const XLSX_TYPES = [{
+  description: 'Excel 活頁簿',
+  accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
+}];
+
 /**
  * 儲存專案檔。
  * handle：已經存過的檔案（有的話直接覆蓋，不再跳視窗）
  * 回傳 { handle, name }；使用者取消則回傳 null。
  */
-export async function saveProjectFile(text, { handle = null, suggestedName, startIn = null }) {
+export function saveProjectFile(text, { handle = null, suggestedName, startIn = null }) {
   const blob = new Blob([text], { type: 'application/json' });
+  return saveBlob(blob, { handle, suggestedName, startIn, types: JSON_TYPES, id: 'ie-save' });
+}
 
+// 匯出 Excel：每次都跳出「另存新檔」視窗
+export function saveExcelFile(blob, { suggestedName, startIn = null }) {
+  return saveBlob(blob, { suggestedName, startIn, types: XLSX_TYPES, id: 'ie-excel' });
+}
+
+async function saveBlob(blob, { handle = null, suggestedName, startIn = null, types, id }) {
   if (!HAS_FS_ACCESS) {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -97,13 +110,13 @@ export async function saveProjectFile(text, { handle = null, suggestedName, star
         return { handle, name: handle.name };
       }
     } catch (err) {
-      console.warn('無法覆蓋原本的專案檔，改為另存新檔：', err);
+      console.warn('無法覆蓋原本的檔案，改為另存新檔：', err);
     }
   }
 
   // 另存新檔
   try {
-    const options = { id: 'ie-save', suggestedName, types: JSON_TYPES };
+    const options = { id, suggestedName, types };
     if (startIn) options.startIn = startIn;
     const newHandle = await window.showSaveFilePicker(options);
     await writeTo(newHandle, blob);

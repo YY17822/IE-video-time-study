@@ -3,7 +3,8 @@
 import { readFrameTimes } from './js/mp4-frames.js';
 import { SegmentStore } from './js/segments.js';
 import { ask, isDialogOpen } from './js/dialog.js';
-import { pickFiles, saveProjectFile, isProjectFile } from './js/files.js';
+import { pickFiles, saveProjectFile, saveExcelFile, isProjectFile } from './js/files.js';
+import { buildXlsx, STYLE } from './js/xlsx.js';
 
 const $ = (id) => document.getElementById(id);
 const video = $('video');
@@ -50,6 +51,13 @@ function fmtTime(sec) {
   const c = cs % 100;
   const pad = (n) => String(n).padStart(2, '0');
   return (h ? `${h}:${pad(m)}` : pad(m)) + `:${pad(s)}.${pad(c)}`;
+}
+
+// 片段時長：只顯示「分:秒」（四捨五入到整秒）
+function fmtDuration(sec) {
+  const total = Math.round(Math.max(0, sec));
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
 }
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -434,7 +442,7 @@ function updateFrameInfo() {
 }
 
 function setControlsEnabled(on) {
-  ['btnBack1s', 'btnPrev', 'btnPlay', 'btnNext', 'btnFwd1s', 'btnSplit', 'speedSel', 'btnSave', 'btnSaveAs']
+  ['btnBack1s', 'btnPrev', 'btnPlay', 'btnNext', 'btnFwd1s', 'btnSplit', 'speedSel', 'btnSave', 'btnSaveAs', 'btnExcel']
     .forEach((id) => { $(id).disabled = !on; });
   updateUndoButtons();
 }
@@ -501,6 +509,54 @@ function updateSaveStatus() {
   document.title = (state.dirty ? '● ' : '') + 'IE 工時影片分析';
 }
 
+// ================= 匯出 Excel =================
+
+async function exportExcel() {
+  if (!state.ready) return;
+  const el = document.activeElement;
+  if (el && el.tagName === 'INPUT') el.blur();
+
+  const round2 = (x) => Math.round(x * 100) / 100;
+  const rows = [[
+    { v: '#', s: STYLE.header },
+    { v: '開始時間', s: STYLE.header },
+    { v: '結束時間', s: STYLE.header },
+    { v: '時長(秒)', s: STYLE.header },
+    { v: '動作備註', s: STYLE.header },
+  ]];
+  let total = 0;
+  store.segs.forEach((s, i) => {
+    const dur = round2(s.end - s.start);
+    total += dur;
+    rows.push([i + 1, fmtTime(s.start), fmtTime(s.end), { v: dur, s: STYLE.number }, s.note]);
+  });
+  const last = store.segs.length + 1;
+  rows.push([
+    '', '',
+    { v: '合計', s: STYLE.bold },
+    { v: round2(total), f: `SUM(D2:D${last})`, s: STYLE.totalNumber },
+    '',
+  ]);
+
+  const blob = buildXlsx({
+    sheetName: '工時分析',
+    rows,
+    widths: [6, 12, 12, 11, 48],
+  });
+
+  try {
+    const res = await saveExcelFile(blob, {
+      suggestedName: `${safeFileBase(state.file.name)}_工時分析.xlsx`,
+      startIn: state.projectHandle || state.videoHandle,
+    });
+    if (res) toast(res.downloaded ? `已下載到「下載」資料夾：${res.name}` : `已匯出：${res.name}`);
+  } catch (err) {
+    console.error(err);
+    await dialogOk('匯出失敗', `無法匯出 Excel 檔。\n（${err.message}）`);
+  }
+}
+
+$('btnExcel').addEventListener('click', exportExcel);
 $('btnSave').addEventListener('click', () => save(false));
 $('btnSaveAs').addEventListener('click', () => save(true));
 
@@ -672,7 +728,7 @@ function renderTable() {
         ['c-no', String(i + 1)],
         ['c-time', fmtTime(s.start)],
         ['c-time', fmtTime(s.end)],
-        ['c-num', dur.toFixed(2)],
+        ['c-num', fmtDuration(dur)],
         ['c-num', String(frames)],
       ];
       for (const [cls, text] of cells) {
