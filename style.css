@@ -305,3 +305,34 @@ kbd {
   .video-wrap { flex: none; aspect-ratio: 16 / 9; }
   .panel { border-left: none; border-top: 1px solid var(--line); max-height: 60vh; }
 }
+
+/* ---------- 版本、存檔狀態 ---------- */
+.version { color: var(--muted); font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+.save-status { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.save-status.dirty { color: var(--accent); }
+
+/* ---------- 對話框 ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+.modal {
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px 22px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+.modal h3 { margin: 0 0 10px; font-size: 16px; }
+.modal-msg { margin: 0 0 16px; line-height: 1.7; white-space: pre-line; color: var(--text); }
+.modal-buttons { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.btn.danger { background: #3a1f1f; border-color: var(--danger); color: #ffd4d4; }

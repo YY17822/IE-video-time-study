@@ -19,6 +19,14 @@ export class SegmentStore {
     this.onChange();
   }
 
+  // 載入先前存下的片段（清空復原歷程）
+  load(segs) {
+    this.segs = segs.map((s) => ({ start: s.start, end: s.end, note: s.note || '' }));
+    this.undoStack = [];
+    this.redoStack = [];
+    this.onChange();
+  }
+
   get length() {
     return this.segs.length;
   }

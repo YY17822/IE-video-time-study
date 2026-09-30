@@ -9,9 +9,12 @@
 <body>
   <header class="topbar">
     <h1 class="brand">IE 工時影片分析</h1>
-    <button id="btnOpen" class="btn primary">開啟影片</button>
-    <input type="file" id="fileInput" accept="video/*,.mov,.mp4,.m4v" hidden>
+    <span class="version" title="程式版本">v0.3</span>
+    <button id="btnOpen" class="btn primary" title="開啟影片；要繼續舊的分析，請同時選取影片和專案檔（⌘O）">開啟</button>
+    <button id="btnSave" class="btn" title="儲存專案檔（⌘S）" disabled>儲存</button>
+    <button id="btnSaveAs" class="btn" title="另存新檔（⇧⌘S）" disabled>另存新檔</button>
     <span id="fileName" class="file-name">尚未開啟影片</span>
+    <span id="saveStatus" class="save-status"></span>
     <span id="frameInfo" class="frame-info"></span>
   </header>
 
@@ -20,7 +23,8 @@
       <div id="videoWrap" class="video-wrap">
         <video id="video" playsinline preload="auto"></video>
         <div id="dropHint" class="drop-hint">
-          <p>把影片拖曳到這裡，或按「開啟影片」</p>
+          <p>按「開啟」或把影片拖曳到這裡，開始新的分析</p>
+          <p class="sub">要繼續舊的分析：同時選取影片和它的專案檔（按住 ⌘ 點選兩個檔案），<br>或只開啟專案檔，再依提示選擇影片</p>
           <p class="sub">影片只在這台電腦上處理，不會上傳到任何地方</p>
         </div>
         <div id="alertBox" class="alert" hidden>
@@ -36,9 +40,11 @@
       </div>
 
       <div class="controls">
-        <button id="btnPrev" class="btn icon" title="後退 1 幀（←）" disabled>◀︎|</button>
+        <button id="btnBack1s" class="btn icon" title="後退 1 秒（←）" disabled>−1秒</button>
+        <button id="btnPrev" class="btn icon" title="後退 1 幀（Shift + ←）" disabled>◀︎|</button>
         <button id="btnPlay" class="btn icon play" title="播放 / 暫停（Space）" disabled>▶︎</button>
-        <button id="btnNext" class="btn icon" title="前進 1 幀（→）" disabled>|▶︎</button>
+        <button id="btnNext" class="btn icon" title="前進 1 幀（Shift + →）" disabled>|▶︎</button>
+        <button id="btnFwd1s" class="btn icon" title="前進 1 秒（→）" disabled>+1秒</button>
         <span class="time"><span id="timeNow">00:00.00</span> / <span id="timeTotal">00:00.00</span></span>
         <span id="frameNow" class="frame-now"></span>
         <span class="spacer"></span>
@@ -86,14 +92,14 @@
   <footer class="keys">
     <span class="key" data-key="play"><kbd>Space</kbd>播放／暫停</span>
     <span class="key" data-key="split"><kbd>S</kbd>分割</span>
-    <span class="key" data-key="prev"><kbd>←</kbd>後退 1 幀</span>
-    <span class="key" data-key="next"><kbd>→</kbd>前進 1 幀</span>
-    <span class="key" data-key="jump"><kbd>⇧</kbd>+<kbd>←→</kbd>10 幀</span>
+    <span class="key" data-key="sec"><kbd>←</kbd><kbd>→</kbd>前後 1 秒</span>
+    <span class="key" data-key="frame"><kbd>⇧</kbd>+<kbd>←→</kbd>前後 1 幀</span>
     <span class="key" data-key="speed"><kbd>↑</kbd><kbd>↓</kbd>倍速</span>
     <span class="key" data-key="undo"><kbd>⌘Z</kbd>復原</span>
     <span class="key" data-key="redo"><kbd>⇧⌘Z</kbd>重做</span>
     <span class="key" data-key="delete"><kbd>Delete</kbd>刪除目前片段</span>
     <span class="key" data-key="note"><kbd>Enter</kbd>寫備註</span>
+    <span class="key" data-key="save"><kbd>⌘S</kbd>儲存</span>
   </footer>
 
   <script type="module" src="app.js"></script>

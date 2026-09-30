@@ -1,0 +1,11 @@
+{
+  "liveServer.settings.ignoreFiles": [
+    ".git/**",
+    ".vscode/**",
+    "**/*.json",
+    "**/*.mov",
+    "**/*.MOV",
+    "**/*.mp4",
+    "**/*.MP4"
+  ]
+}
