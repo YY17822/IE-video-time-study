@@ -516,7 +516,6 @@ async function exportExcel() {
   const el = document.activeElement;
   if (el && el.tagName === 'INPUT') el.blur();
 
-  const round2 = (x) => Math.round(x * 100) / 100;
   const rows = [[
     { v: '#', s: STYLE.header },
     { v: '開始時間', s: STYLE.header },
@@ -525,16 +524,17 @@ async function exportExcel() {
     { v: '動作備註', s: STYLE.header },
   ]];
   let total = 0;
+  // 時長只取整數秒（四捨五入），與畫面上「分:秒」的算法一致
   store.segs.forEach((s, i) => {
-    const dur = round2(s.end - s.start);
+    const dur = Math.round(s.end - s.start);
     total += dur;
-    rows.push([i + 1, fmtTime(s.start), fmtTime(s.end), { v: dur, s: STYLE.number }, s.note]);
+    rows.push([i + 1, fmtTime(s.start), fmtTime(s.end), dur, s.note]);
   });
   const last = store.segs.length + 1;
   rows.push([
     '', '',
     { v: '合計', s: STYLE.bold },
-    { v: round2(total), f: `SUM(D2:D${last})`, s: STYLE.totalNumber },
+    { v: total, f: `SUM(D2:D${last})`, s: STYLE.bold },
     '',
   ]);
 
