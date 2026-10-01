@@ -76,6 +76,18 @@ export class SegmentStore {
     });
   }
 
+  // 合併：把第 i 段併入上一段，兩段的備註都保留（用「 / 」連接）
+  mergeWithPrevious(i) {
+    return this.commit(() => {
+      if (i <= 0 || i >= this.segs.length) return false;
+      const prev = this.segs[i - 1];
+      const cur = this.segs[i];
+      prev.end = cur.end;
+      prev.note = [prev.note, cur.note].filter(Boolean).join(' / ');
+      this.segs.splice(i, 1);
+    });
+  }
+
   setNote(i, text) {
     if (!this.segs[i] || this.segs[i].note === text) return false;
     return this.commit(() => {

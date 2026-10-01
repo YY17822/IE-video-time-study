@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <h1 class="brand">IE 工時影片分析</h1>
-    <span class="version" title="程式版本">v0.4.1</span>
+    <span class="version" title="程式版本">v0.5-dev</span>
     <button id="btnOpen" class="btn primary" title="開啟影片；要繼續舊的分析，請同時選取影片和專案檔（⌘O）">開啟</button>
     <button id="btnSave" class="btn" title="儲存專案檔（⌘S）" disabled>儲存</button>
     <button id="btnSaveAs" class="btn" title="另存新檔（⇧⌘S）" disabled>另存新檔</button>
@@ -51,6 +51,7 @@
         <span class="spacer"></span>
         <button id="btnUndo" class="btn" title="復原（⌘Z）" disabled>復原</button>
         <button id="btnRedo" class="btn" title="重做（⇧⌘Z）" disabled>重做</button>
+        <button id="btnMerge" class="btn" title="把目前選取的片段併入上一段（M）" disabled>合併</button>
         <button id="btnSplit" class="btn accent" title="在目前這一幀分割（S）" disabled>分割</button>
         <label class="speed">倍速
           <select id="speedSel" disabled>
@@ -79,7 +80,7 @@
               <th class="c-time">開始</th>
               <th class="c-time">結束</th>
               <th class="c-num">時長(分:秒)</th>
-              <th class="c-num">幀數</th>
+              <th class="c-num">時長(秒)</th>
               <th>動作備註</th>
             </tr>
           </thead>
@@ -98,6 +99,7 @@
     <span class="key" data-key="speed"><kbd>↑</kbd><kbd>↓</kbd>倍速</span>
     <span class="key" data-key="undo"><kbd>⌘Z</kbd>復原</span>
     <span class="key" data-key="redo"><kbd>⇧⌘Z</kbd>重做</span>
+    <span class="key" data-key="merge"><kbd>M</kbd>合併到上一段</span>
     <span class="key" data-key="delete"><kbd>Delete</kbd>刪除目前片段</span>
     <span class="key" data-key="note"><kbd>Enter</kbd>寫備註</span>
     <span class="key" data-key="save"><kbd>⌘S</kbd>儲存</span>

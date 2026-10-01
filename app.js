@@ -442,7 +442,7 @@ function updateFrameInfo() {
 }
 
 function setControlsEnabled(on) {
-  ['btnBack1s', 'btnPrev', 'btnPlay', 'btnNext', 'btnFwd1s', 'btnSplit', 'speedSel', 'btnSave', 'btnSaveAs', 'btnExcel']
+  ['btnBack1s', 'btnPrev', 'btnPlay', 'btnNext', 'btnFwd1s', 'btnSplit', 'btnMerge', 'speedSel', 'btnSave', 'btnSaveAs', 'btnExcel']
     .forEach((id) => { $(id).disabled = !on; });
   updateUndoButtons();
 }
@@ -669,6 +669,18 @@ function removeCurrent() {
   toast(`已刪除第 ${i + 1} 段（可按 ⌘Z 復原）`);
 }
 
+// 合併：把目前選取的片段（播放位置所在的那一段）併入上一段
+function mergeCurrent() {
+  if (!state.ready) return;
+  const i = store.indexAt(curTime());
+  if (i === 0) { toast('第 1 段沒有上一段可以合併'); return; }
+  const startOfPrev = store.segs[i - 1].start;
+  store.mergeWithPrevious(i);
+  // 停在合併後那一段的開頭，方便確認結果
+  gotoFrame(frameAt(startOfPrev));
+  toast(`已將第 ${i + 1} 段併入第 ${i} 段（可按 ⌘Z 復原）`);
+}
+
 function undo() {
   if (!state.ready) return;
   if (store.undo()) toast('已復原'); else toast('沒有可以復原的動作');
@@ -723,13 +735,12 @@ function renderTable() {
       tr.dataset.i = i;
       const dur = s.end - s.start;
       total += dur;
-      const frames = boundaryFrame(s.end) - boundaryFrame(s.start);
       const cells = [
         ['c-no', String(i + 1)],
         ['c-time', fmtTime(s.start)],
         ['c-time', fmtTime(s.end)],
         ['c-num', fmtDuration(dur)],
-        ['c-num', String(frames)],
+        ['c-num', String(Math.round(dur))], // 整數秒，與 Excel 匯出一致
       ];
       for (const [cls, text] of cells) {
         const td = document.createElement('td');
@@ -842,6 +853,7 @@ $('btnPrev').addEventListener('click', () => step(-1));
 $('btnNext').addEventListener('click', () => step(1));
 $('btnFwd1s').addEventListener('click', () => jumpSeconds(1));
 $('btnSplit').addEventListener('click', split);
+$('btnMerge').addEventListener('click', mergeCurrent);
 $('btnUndo').addEventListener('click', undo);
 $('btnRedo').addEventListener('click', redo);
 $('alertClose').addEventListener('click', hideAlert);
@@ -911,6 +923,8 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault(); changeSpeed(1); flashKey('speed'); break;
     case 'ArrowDown':
       e.preventDefault(); changeSpeed(-1); flashKey('speed'); break;
+    case 'KeyM':
+      e.preventDefault(); mergeCurrent(); flashKey('merge'); break;
     case 'Delete':
     case 'Backspace':
       e.preventDefault(); removeCurrent(); flashKey('delete'); break;
