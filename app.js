@@ -118,6 +118,31 @@ function flashKey(name) {
 
 // ================= 開啟檔案 =================
 
+// 檢查檔名：macOS Finder 裡的「/」實際存成「:」，瀏覽器常因此讀不到檔案
+function fileNameProblem(name) {
+  if (/[\/:]/.test(name)) {
+    return `檔名「${name}」含有「/」或「:」，瀏覽器無法正確讀取這種檔名。\n\n` +
+      `請先把檔名中的「/」改成「-」或直接刪掉（例如 11/20 改成 11-20），再重新開啟。`;
+  }
+  return '';
+}
+
+// 讀取失敗時，依錯誤種類說明原因
+function openErrorMessage(err, name) {
+  const who = name ? `「${name}」` : '這個檔案';
+  const n = err?.name || '';
+  if (n === 'NotFoundError') {
+    return `找不到${who}。檔案可能已被移動、改名或刪除，請重新選擇。`;
+  }
+  if (n === 'NotReadableError' || n === 'NotAllowedError' || n === 'SecurityError') {
+    return `無法讀取${who}。\n\n可能原因：\n` +
+      `・檔名含有「/」或「:」等特殊字元（請改檔名）\n` +
+      `・檔案還在 iCloud／雲端下載中，或正在複製中\n` +
+      `・瀏覽器沒有讀取這個資料夾的權限`;
+  }
+  return `無法開啟${who}。\n（${n ? n + '：' : ''}${err?.message || err}）`;
+}
+
 function dialogOk(title, message) {
   return ask({ title, message, buttons: [{ label: '知道了', value: true, kind: 'primary' }], cancelValue: true });
 }
@@ -167,6 +192,10 @@ async function openEntries(entries) {
     await dialogOk('一次只能開一組', '請選一支影片；要繼續舊的分析時，再加上它的專案檔（最多兩個檔案）。');
     return;
   }
+  for (const e of entries) {
+    const problem = fileNameProblem(e.file.name);
+    if (problem) { await dialogOk('無法開啟檔案', problem); return; }
+  }
   if (!(await confirmDiscard())) return;
 
   let project = null;
@@ -198,10 +227,10 @@ async function openEntries(entries) {
 
 async function openDialog() {
   try {
-    openEntries(await pickFiles({ startIn: state.projectHandle || state.videoHandle }));
+    await openEntries(await pickFiles({ startIn: state.projectHandle || state.videoHandle }));
   } catch (err) {
     console.error(err);
-    toast('無法開啟檔案');
+    await dialogOk('無法開啟檔案', openErrorMessage(err));
   }
 }
 
@@ -231,20 +260,60 @@ document.addEventListener('drop', async (e) => {
     }
     return { file, handle };
   }));
-  openEntries(entries.filter((en) => en.file));
+  try {
+    await openEntries(entries.filter((en) => en.file));
+  } catch (err) {
+    console.error(err);
+    await dialogOk('無法開啟檔案', openErrorMessage(err));
+  }
 });
+
+const METADATA_TIMEOUT_MS = 20000;
 
 function waitForMetadata() {
   return new Promise((resolve, reject) => {
     const ok = () => { cleanup(); resolve(); };
-    const bad = () => { cleanup(); reject(new Error('media error')); };
+    const bad = () => {
+      cleanup();
+      const err = new Error('media error');
+      err.mediaCode = video.error?.code || 0;
+      err.mediaMessage = video.error?.message || '';
+      reject(err);
+    };
+    const timer = setTimeout(() => {
+      cleanup();
+      const err = new Error('timeout');
+      err.timeout = true;
+      reject(err);
+    }, METADATA_TIMEOUT_MS);
     const cleanup = () => {
+      clearTimeout(timer);
       video.removeEventListener('loadedmetadata', ok);
       video.removeEventListener('error', bad);
     };
     video.addEventListener('loadedmetadata', ok);
     video.addEventListener('error', bad);
   });
+}
+
+// 影片載入失敗的原因說明
+function loadFailMessage(err, codec, name) {
+  if (err?.timeout) {
+    return `「${name}」讀取超過 ${METADATA_TIMEOUT_MS / 1000} 秒仍沒有回應。\n\n可能原因：\n` +
+      `・檔名含有「/」或「:」等特殊字元（請改檔名）\n` +
+      `・檔案還在 iCloud／雲端下載中，或正在複製中\n` +
+      `・檔案不完整或已損壞\n\n請確認後重新開啟。`;
+  }
+  // MediaError：2 = 讀檔失敗、3 = 解碼失敗、4 = 格式不支援
+  if (err?.mediaCode === 2) {
+    return `讀取「${name}」時發生錯誤，檔案可能已被移動、改名，或還在下載／複製中。\n\n` +
+      `若檔名含有「/」或「:」，請先改檔名再開啟。`;
+  }
+  if (err?.mediaCode === 3) {
+    return `「${name}」的影像資料無法解碼，檔案可能不完整或已損壞。\n\n` +
+      `請確認檔案已完整複製，或重新從手機匯出。`;
+  }
+  return unsupportedMessage(codec);
 }
 
 function unsupportedMessage(codec) {
@@ -281,7 +350,19 @@ function resetToStart() {
  * project：要套用的專案檔 { data, handle, name }，沒有則開始新的分析
  */
 async function loadFile(videoEntry, project) {
+  try {
+    await loadFileInner(videoEntry, project);
+  } catch (err) {
+    console.error('載入影片失敗：', err);
+    $('frameInfo').textContent = '';
+    showAlert(openErrorMessage(err, videoEntry?.file?.name));
+  }
+}
+
+async function loadFileInner(videoEntry, project) {
   const { file } = videoEntry;
+  const problem = fileNameProblem(file.name);
+  if (problem) { await dialogOk('無法開啟影片', problem); return; }
   const token = ++state.loadToken;
   hideAlert();
   video.pause();
@@ -308,11 +389,12 @@ async function loadFile(videoEntry, project) {
   try {
     await waitForMetadata();
     info = await parsing;
-  } catch {
+  } catch (err) {
+    console.warn('影片載入失敗：', err, err.mediaMessage || '');
     info = await parsing;
     if (token !== state.loadToken) return;
     $('frameInfo').textContent = '';
-    showAlert(unsupportedMessage(info?.codec));
+    showAlert(loadFailMessage(err, info?.codec, file.name));
     return;
   }
   if (token !== state.loadToken) return;
@@ -580,10 +662,11 @@ function togglePlay() {
   }
 }
 
-function gotoFrame(i) {
+// keepPlaying = true：播放中跳轉後繼續播放（快轉、倒轉、拖時間軸）
+function gotoFrame(i, { keepPlaying = false } = {}) {
   if (!state.ready) return;
   i = clamp(i, 0, state.frames.length - 1);
-  if (!video.paused) video.pause();
+  if (!keepPlaying && !video.paused) video.pause();
   state.cur = i;
   video.currentTime = seekTargetOf(i);
   updatePosition();
@@ -595,7 +678,8 @@ function step(n) {
 
 function jumpSeconds(sec) {
   if (!state.ready) return;
-  gotoFrame(frameAt(clamp(curTime() + sec, 0, state.duration)));
+  const base = video.paused ? curTime() : video.currentTime;
+  gotoFrame(frameAt(clamp(base + sec, 0, state.duration)), { keepPlaying: true });
 }
 
 function changeSpeed(dir) {
@@ -831,14 +915,23 @@ function seekFromPointer(e) {
   const ratio = clamp((e.clientX - rect.left) / rect.width, 0, 1);
   gotoFrame(frameAt(ratio * state.duration));
 }
+// 播放中拖時間軸：拖曳時先暫停，放開後繼續播放
+let resumeAfterScrub = false;
 timeline.addEventListener('pointerdown', (e) => {
   if (!state.ready) return;
+  resumeAfterScrub = !video.paused;
   timeline.setPointerCapture(e.pointerId);
   seekFromPointer(e);
 });
 timeline.addEventListener('pointermove', (e) => {
   if (timeline.hasPointerCapture(e.pointerId)) seekFromPointer(e);
 });
+const endScrub = () => {
+  if (resumeAfterScrub && state.ready) video.play();
+  resumeAfterScrub = false;
+};
+timeline.addEventListener('pointerup', endScrub);
+timeline.addEventListener('pointercancel', endScrub);
 
 // ================= 按鈕 =================
 
